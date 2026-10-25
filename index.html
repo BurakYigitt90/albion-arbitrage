@@ -50,47 +50,33 @@
         </div>
 
         <div class="control-group">
-            <label>İtem:</label>
-            <select id="baseItem" style="width: 180px;">
-                <optgroup label="Çantalar">
-                    <option value="T4_BAG">T4 Çanta</option>
-                    <option value="T5_BAG">T5 Çanta</option>
-                    <option value="T6_BAG">T6 Çanta</option>
+            <label>İtem Türü:</label>
+            <select id="itemType" style="width: 180px;">
+                <optgroup label="Genel">
+                    <option value="BAG">Çanta (Bag)</option>
+                    <option value="CAPE">Pelerin (Cape)</option>
                 </optgroup>
                 <optgroup label="Silahlar">
-                    <option value="T4_SWORD">Broadsword (T4 Kılıç)</option>
-                    <option value="T5_SWORD">Broadsword (T5 Kılıç)</option>
-                    <option value="T4_2H_DUALSWORD">Dual Swords (T4)</option>
-                    <option value="T5_2H_DUALSWORD">Dual Swords (T5)</option>
-                    <option value="T4_2H_BOW">Bow (T4 Yay)</option>
-                    <option value="T5_2H_BOW">Bow (T5 Yay)</option>
+                    <option value="SWORD">Broadsword (Kılıç)</option>
+                    <option value="2H_DUALSWORD">Dual Swords</option>
+                    <option value="2H_CLAYMORE">Claymore</option>
+                    <option value="2H_BOW">Bow (Yay)</option>
+                    <option value="2H_WARBOW">Warbow</option>
                 </optgroup>
                 <optgroup label="Zırhlar">
-                    <option value="T4_ARMOR_PLATE_SET3">Soldier Armor (T4)</option>
-                    <option value="T5_ARMOR_PLATE_SET3">Soldier Armor (T5)</option>
+                    <option value="ARMOR_PLATE_SET3">Soldier Armor (Plate)</option>
                 </optgroup>
             </select>
         </div>
 
         <div class="control-group">
-            <label>Enchantment:</label>
-            <select id="enchantLevel">
-                <option value="">.0 (Düz)</option>
-                <option value="@1">.1 (Yeşil)</option>
-                <option value="@2">.2 (Mavi)</option>
-                <option value="@3">.3 (Mor)</option>
-            </select>
-        </div>
-
-        <div class="control-group">
-            <label>Kalite:</label>
-            <select id="qualityLevel">
-                <option value="all">Tüm Kaliteler</option>
-                <option value="1">Normal</option>
-                <option value="2">İyi (Good)</option>
-                <option value="3">Kaliteli (Outstanding)</option>
-                <option value="4">Mükemmel (Excellent)</option>
-                <option value="5">Başyapıt (Masterpiece)</option>
+            <label>Tier:</label>
+            <select id="itemTier">
+                <option value="T4">Tier 4 (T4)</option>
+                <option value="T5">Tier 5 (T5)</option>
+                <option value="T6">Tier 6 (T6)</option>
+                <option value="T7">Tier 7 (T7)</option>
+                <option value="T8">Tier 8 (T8)</option>
             </select>
         </div>
 
@@ -112,7 +98,7 @@
     <table>
         <thead>
             <tr>
-                <th>Item ID</th>
+                <th>Item ID & Enchant</th>
                 <th>Kalite</th>
                 <th>Alış Fiyatı</th>
                 <th>Satış Fiyatı</th>
@@ -122,7 +108,7 @@
             </tr>
         </thead>
         <tbody id="resultBody">
-            <tr><td colspan="7" class="loading">Seçimleri yapıp "Fiyatları Çek" butonuna bas kankam.</td></tr>
+            <tr><td colspan="7" class="loading">İtem ve Tier seçip "Fiyatları Çek" butonuna bas kankam.</td></tr>
         </tbody>
     </table>
 </div>
@@ -139,19 +125,25 @@
     async function fetchArbitrageData() {
         const source = document.getElementById('sourceCity').value;
         const target = document.getElementById('targetCity').value;
-        const baseItem = document.getElementById('baseItem').value;
-        const enchant = document.getElementById('enchantLevel').value;
-        const targetQuality = document.getElementById('qualityLevel').value;
+        const itemType = document.getElementById('itemType').value;
+        const itemTier = document.getElementById('itemTier').value;
         const premium = document.getElementById('isPremium').value === 'true';
         const tbody = document.getElementById('resultBody');
 
-        // Tam item ID'sini oluştur (Örn: T4_SWORD@1)
-        const finalItemId = baseItem + enchant;
+        // Seçilen Tier ve İtem tipini birleştirip o itemin tüm enchantment'larını (.0, .1, .2, .3) otomatik oluşturalım
+        const baseCode = `${itemTier}_${itemType}`;
+        const itemsToFetch = [
+            baseCode,
+            `${baseCode}@1`,
+            `${baseCode}@2`,
+            `${baseCode}@3`
+        ];
 
-        tbody.innerHTML = `<tr><td colspan="7" class="loading">API'den veriler süzülüyor, bekle kankam...</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" class="loading">API'den tüm enchantment ve kaliteler taranıyor, bekle kankam...</td></tr>`;
 
         try {
-            const url = `https://west.albion-online-data.com/api/v2/stats/prices/${finalItemId}?locations=${source},${target}`;
+            const itemsString = itemsToFetch.join(',');
+            const url = `https://west.albion-online-data.com/api/v2/stats/prices/${itemsString}?locations=${source},${target}`;
             
             const response = await fetch(url);
             const data = await response.json();
@@ -159,7 +151,7 @@
             tbody.innerHTML = "";
 
             if (!data || data.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="7" class="loading">Bu kriterlere uygun veri bulunamadı.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="7" class="loading">Bu seçime uygun veri bulunamadı.</td></tr>`;
                 return;
             }
 
@@ -176,9 +168,6 @@
                 let parts = key.split('_');
                 let quality = parseInt(parts.pop());
                 let itemId = parts.join('_');
-
-                // Kalite filtresi seçildiyse sadece o kaliteyi göster
-                if (targetQuality !== "all" && quality !== parseInt(targetQuality)) continue;
 
                 let itemData = marketMap[key];
                 if (!itemData[source] || !itemData[target]) continue;
@@ -213,7 +202,7 @@
             }
 
             if(rowCount === 0) {
-                tbody.innerHTML = `<tr><td colspan="7" class="loading">Seçilen kalite veya pazarlarda aktif fiyat verisi bulunamadı kanka.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="7" class="loading">Seçilen tier ve pazarlarda aktif fiyat verisi bulunamadı kanka.</td></tr>`;
             }
 
         } catch (error) {
