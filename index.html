@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Albion Akıllı Arbitraj Panosu</title>
+    <title>Albion Profesyonel Arbitraj Panosu</title>
     <style>
         body { font-family: Arial, sans-serif; background: #121212; color: #e0e0e0; margin: 0; padding: 20px; }
         .container { max-width: 1200px; margin: auto; background: #1e1e1e; padding: 20px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
         h1 { font-size: 20px; margin-bottom: 20px; color: #ffa726; }
         .controls { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; align-items: flex-end; }
         .control-group { display: flex; flex-direction: column; gap: 5px; }
-        select, button, input { padding: 10px; background: #2d2d2d; color: #fff; border: 1px solid #444; border-radius: 4px; font-size: 14px; }
+        select, button { padding: 10px; background: #2d2d2d; color: #fff; border: 1px solid #444; border-radius: 4px; font-size: 14px; }
         button { background: #d32f2f; cursor: pointer; font-weight: bold; }
         button:hover { background: #f44336; }
         table { width: 100%; border-collapse: collapse; margin-top: 10px; }
@@ -25,7 +25,7 @@
 <body>
 
 <div class="container">
-    <h1>Albion Akıllı Arbitraj & Pazar Panosu</h1>
+    <h1>Albion Profesyonel Arbitraj Panosu</h1>
     
     <div class="controls">
         <div class="control-group">
@@ -50,20 +50,48 @@
         </div>
 
         <div class="control-group">
-            <label>Kategori:</label>
-            <select id="itemCategory" onchange="filterCategory()">
-                <option value="all">Tümü / Popülerler</option>
-                <option value="SWORD">Kılıçlar (Swords)</option>
-                <option value="BOW">Yaylar (Bows)</option>
-                <option value="BAG">Çantalar (Bags)</option>
-                <option value="CAPE">Pelerinler (Capes)</option>
-                <option value="ARMOR_PLATE">Plate Zırhlar</option>
+            <label>İtem:</label>
+            <select id="baseItem" style="width: 180px;">
+                <optgroup label="Çantalar">
+                    <option value="T4_BAG">T4 Çanta</option>
+                    <option value="T5_BAG">T5 Çanta</option>
+                    <option value="T6_BAG">T6 Çanta</option>
+                </optgroup>
+                <optgroup label="Silahlar">
+                    <option value="T4_SWORD">Broadsword (T4 Kılıç)</option>
+                    <option value="T5_SWORD">Broadsword (T5 Kılıç)</option>
+                    <option value="T4_2H_DUALSWORD">Dual Swords (T4)</option>
+                    <option value="T5_2H_DUALSWORD">Dual Swords (T5)</option>
+                    <option value="T4_2H_BOW">Bow (T4 Yay)</option>
+                    <option value="T5_2H_BOW">Bow (T5 Yay)</option>
+                </optgroup>
+                <optgroup label="Zırhlar">
+                    <option value="T4_ARMOR_PLATE_SET3">Soldier Armor (T4)</option>
+                    <option value="T5_ARMOR_PLATE_SET3">Soldier Armor (T5)</option>
+                </optgroup>
             </select>
         </div>
 
         <div class="control-group">
-            <label>Arama (Örn: T4_BAG, T5_MAIN_SWORD):</label>
-            <input type="text" id="searchInput" placeholder="Item ID ara..." style="width: 200px;">
+            <label>Enchantment:</label>
+            <select id="enchantLevel">
+                <option value="">.0 (Düz)</option>
+                <option value="@1">.1 (Yeşil)</option>
+                <option value="@2">.2 (Mavi)</option>
+                <option value="@3">.3 (Mor)</option>
+            </select>
+        </div>
+
+        <div class="control-group">
+            <label>Kalite:</label>
+            <select id="qualityLevel">
+                <option value="all">Tüm Kaliteler</option>
+                <option value="1">Normal</option>
+                <option value="2">İyi (Good)</option>
+                <option value="3">Kaliteli (Outstanding)</option>
+                <option value="4">Mükemmel (Excellent)</option>
+                <option value="5">Başyapıt (Masterpiece)</option>
+            </select>
         </div>
 
         <div class="control-group">
@@ -94,35 +122,12 @@
             </tr>
         </thead>
         <tbody id="resultBody">
-            <tr><td colspan="7" class="loading">Kriterleri seçip "Fiyatları Çek" butonuna bas kankam.</td></tr>
+            <tr><td colspan="7" class="loading">Seçimleri yapıp "Fiyatları Çek" butonuna bas kankam.</td></tr>
         </tbody>
     </table>
 </div>
 
 <script>
-    // Genişletilmiş ve sık kullanılan popüler ticaret itemleri listesi (Enchantment'lar dahil)
-    const masterItemList = [
-        // Çantalar
-        "T4_BAG", "T4_BAG@1", "T4_BAG@2", "T4_BAG@3",
-        "T5_BAG", "T5_BAG@1", "T5_BAG@2", "T5_BAG@3",
-        "T6_BAG", "T6_BAG@1", "T6_BAG@2", "T6_BAG@3",
-        // Kılıçlar
-        "T4_MAIN_SWORD", "T4_MAIN_SWORD@1", "T4_MAIN_SWORD@2",
-        "T5_MAIN_SWORD", "T5_MAIN_SWORD@1", "T5_MAIN_SWORD@2",
-        "T6_MAIN_SWORD", "T6_MAIN_SWORD@1", "T6_MAIN_SWORD@2",
-        "T4_2H_CLAYMORE", "T4_2H_CLAYMORE@1", "T5_2H_CLAYMORE",
-        // Yaylar
-        "T4_2H_BOW", "T4_2H_BOW@1", "T4_2H_BOW@2",
-        "T5_2H_BOW", "T5_2H_BOW@1", "T5_2H_BOW@2",
-        "T6_2H_BOW", "T6_2H_BOW@1",
-        // Plate Zırhlar
-        "T4_ARMOR_PLATE_SET3", "T4_ARMOR_PLATE_SET3@1",
-        "T5_ARMOR_PLATE_SET3", "T5_ARMOR_PLATE_SET3@1",
-        "T6_ARMOR_PLATE_SET3", "T6_ARMOR_PLATE_SET3@1",
-        // Pelerinler
-        "T4_CAPE", "T4_CAPE@1", "T5_CAPE", "T5_CAPE@1"
-    ];
-
     const qualityNames = {
         1: "Normal",
         2: "İyi",
@@ -131,36 +136,22 @@
         5: "Başyapıt"
     };
 
-    function filterCategory() {
-        // İleride kategori seçimine göre listeyi daraltmak için kullanılabilir
-    }
-
     async function fetchArbitrageData() {
         const source = document.getElementById('sourceCity').value;
         const target = document.getElementById('targetCity').value;
-        const searchVal = document.getElementById('searchInput').value.trim().toUpperCase();
-        const categoryVal = document.getElementById('itemCategory').value;
+        const baseItem = document.getElementById('baseItem').value;
+        const enchant = document.getElementById('enchantLevel').value;
+        const targetQuality = document.getElementById('qualityLevel').value;
         const premium = document.getElementById('isPremium').value === 'true';
         const tbody = document.getElementById('resultBody');
 
-        // Filtreleme yapalım
-        let itemsToFetch = masterItemList;
-        if (searchVal !== "") {
-            itemsToFetch = masterItemList.filter(id => id.includes(searchVal));
-        } else if (categoryVal !== "all") {
-            itemsToFetch = masterItemList.filter(id => id.includes(categoryVal));
-        }
+        // Tam item ID'sini oluştur (Örn: T4_SWORD@1)
+        const finalItemId = baseItem + enchant;
 
-        if (itemsToFetch.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="7" class="loading" style="color: #ef5350;">Aramaya uygun item bulunamadı kanka!</td></tr>`;
-            return;
-        }
-
-        tbody.innerHTML = `<tr><td colspan="7" class="loading">API'den güncel veriler çekiliyor, bekle kankam...</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" class="loading">API'den veriler süzülüyor, bekle kankam...</td></tr>`;
 
         try {
-            const itemsString = itemsToFetch.join(',');
-            const url = `https://west.albion-online-data.com/api/v2/stats/prices/${itemsString}?locations=${source},${target}`;
+            const url = `https://west.albion-online-data.com/api/v2/stats/prices/${finalItemId}?locations=${source},${target}`;
             
             const response = await fetch(url);
             const data = await response.json();
@@ -168,7 +159,7 @@
             tbody.innerHTML = "";
 
             if (!data || data.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="7" class="loading">Seçilen kriterlerde veri dönmedi.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="7" class="loading">Bu kriterlere uygun veri bulunamadı.</td></tr>`;
                 return;
             }
 
@@ -186,15 +177,16 @@
                 let quality = parseInt(parts.pop());
                 let itemId = parts.join('_');
 
+                // Kalite filtresi seçildiyse sadece o kaliteyi göster
+                if (targetQuality !== "all" && quality !== parseInt(targetQuality)) continue;
+
                 let itemData = marketMap[key];
-                // Sadece iki lokasyonda da verisi olanları baz alalım
                 if (!itemData[source] || !itemData[target]) continue;
 
                 let buyRecord = itemData[source];
                 let sellRecord = itemData[target];
 
                 let buyPrice = buyRecord.sell_price_min;
-                // Hedef Black Market ise alım teklifi (buy_price_max), normal şehir ise satış (sell_price_min)
                 let sellPrice = target === 'Black Market' ? sellRecord.buy_price_max : sellRecord.sell_price_min;
 
                 if (buyPrice <= 0 || sellPrice <= 0) continue;
@@ -221,7 +213,7 @@
             }
 
             if(rowCount === 0) {
-                tbody.innerHTML = `<tr><td colspan="7" class="loading">Bu itemler için her iki pazarda da aktif eşleşen fiyat bulunamadı kanka.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="7" class="loading">Seçilen kalite veya pazarlarda aktif fiyat verisi bulunamadı kanka.</td></tr>`;
             }
 
         } catch (error) {
