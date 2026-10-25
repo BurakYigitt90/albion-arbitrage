@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Albion Profesyonel Arbitraj Panosu</title>
+    <title>Albion Master Arbitraj Panosu</title>
     <style>
         body { font-family: Arial, sans-serif; background: #121212; color: #e0e0e0; margin: 0; padding: 20px; }
-        .container { max-width: 1200px; margin: auto; background: #1e1e1e; padding: 20px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+        .container { max-width: 1300px; margin: auto; background: #1e1e1e; padding: 20px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
         h1 { font-size: 20px; margin-bottom: 20px; color: #ffa726; }
         .controls { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; align-items: flex-end; }
         .control-group { display: flex; flex-direction: column; gap: 5px; }
@@ -25,7 +25,7 @@
 <body>
 
 <div class="container">
-    <h1>Albion Profesyonel Arbitraj Panosu</h1>
+    <h1>Albion Master Arbitraj & Pazar Panosu</h1>
     
     <div class="controls">
         <div class="control-group">
@@ -46,25 +46,40 @@
                 <option value="Black Market">Caerleon Black Market</option>
                 <option value="Caerleon">Caerleon (Normal Market)</option>
                 <option value="Martlock">Martlock</option>
+                <option value="Bridgewatch">Bridgewatch</option>
             </select>
         </div>
 
         <div class="control-group">
-            <label>İtem Türü:</label>
-            <select id="itemType" style="width: 180px;">
-                <optgroup label="Genel">
-                    <option value="BAG">Çanta (Bag)</option>
-                    <option value="CAPE">Pelerin (Cape)</option>
+            <label>Kategori (Ne arıyorsun?):</label>
+            <select id="itemCategory" style="width: 220px;">
+                <optgroup label="Genel & Ekonomi">
+                    <option value="BAG">Çantalar (Bags)</option>
+                    <option value="CAPE">Pelerinler (Capes)</option>
+                    <option value="MOUNT">Binekler (Mounts)</option>
                 </optgroup>
-                <optgroup label="Silahlar">
-                    <option value="SWORD">Broadsword (Kılıç)</option>
-                    <option value="2H_DUALSWORD">Dual Swords</option>
-                    <option value="2H_CLAYMORE">Claymore</option>
-                    <option value="2H_BOW">Bow (Yay)</option>
-                    <option value="2H_WARBOW">Warbow</option>
+                <optgroup label="Balıkçılık & Toplayıcılık">
+                    <option value="FISHINGROD">Oltalar (Fishing Rods)</option>
+                    <option value="FISHING">Balıkçı Kıyafetleri (Fishing Gear)</option>
+                    <option value="GATHERER">Tüm Toplayıcı Setleri (Gatherer)</option>
                 </optgroup>
-                <optgroup label="Zırhlar">
-                    <option value="ARMOR_PLATE_SET3">Soldier Armor (Plate)</option>
+                <optgroup label="Savaş / Silahlar">
+                    <option value="SWORD">Kılıçlar (Swords)</option>
+                    <option value="BOW">Yaylar (Bows)</option>
+                    <option value="AXE">Baltalar (Axes)</option>
+                    <option value="HAMMER">Çekiçler (Hammers)</option>
+                    <option value="CROSSBOW">Arbaletler (Crossbows)</option>
+                    <option value="FIRESTAFF">Ateş Asaları (Fire Staves)</option>
+                    <option value="HOLYSTAFF">Kutsal Asalar (Holy Staves)</option>
+                </optgroup>
+                <optgroup label="Savaş / Zırhlar">
+                    <option value="ARMOR_PLATE">Plate Zırhlar</option>
+                    <option value="ARMOR_LEATHER">Leather Zırhlar</option>
+                    <option value="ARMOR_CLOTH">Cloth Zırhlar</option>
+                </optgroup>
+                <optgroup label="Yedek / Sarf Malzemeleri">
+                    <option value="POTION">İksirler / Potlar (Potions)</option>
+                    <option value="MEAL">Yemekler (Food)</option>
                 </optgroup>
             </select>
         </div>
@@ -89,7 +104,7 @@
         </div>
 
         <div>
-            <button onclick="fetchArbitrageData()">Fiyatları Çek</button>
+            <button onclick="fetchMasterData()">Kapsamlı Tara</button>
         </div>
     </div>
 
@@ -108,7 +123,7 @@
             </tr>
         </thead>
         <tbody id="resultBody">
-            <tr><td colspan="7" class="loading">İtem ve Tier seçip "Fiyatları Çek" butonuna bas kankam.</td></tr>
+            <tr><td colspan="7" class="loading">Kategori ve Tier seçip "Kapsamlı Tara" butonuna bas kankam.</td></tr>
         </tbody>
     </table>
 </div>
@@ -122,26 +137,123 @@
         5: "Başyapıt"
     };
 
-    async function fetchArbitrageData() {
+    // Seçilen kategoriye göre Albion'daki o sınıfa ait temel ID kalıplarını üreten motor
+    function generateItemPatterns(category, tier) {
+        let basePatterns = [];
+
+        switch(category) {
+            // Genel
+            case "BAG":
+                basePatterns = [`${tier}_BAG`];
+                break;
+            case "CAPE":
+                basePatterns = [`${tier}_CAPE`, `${tier}_CAPE_SET1`, `${tier}_BACKPACK`];
+                break;
+            case "MOUNT":
+                basePatterns = [`${tier}_MOUNT_HORSE`, `${tier}_MOUNT_OX`, `${tier}_MOUNT_GIANTSTAG`];
+                break;
+            
+            // Balıkçılık & Toplayıcılık
+            case "FISHINGROD":
+                basePatterns = [`${tier}_FISHINGROD`];
+                break;
+            case "FISHING":
+                basePatterns = [`${tier}_ARMOR_FISHING`, `${tier}_HEAD_FISHING`, `${tier}_SHOES_FISHING`];
+                break;
+            case "GATHERER":
+                basePatterns = [
+                    `${tier}_ARMOR_GATHERER_FIBER`, `${tier}_HEAD_GATHERER_FIBER`, `${tier}_SHOES_GATHERER_FIBER`,
+                    `${tier}_ARMOR_GATHERER_HIDE`, `${tier}_HEAD_GATHERER_HIDE`, `${tier}_SHOES_GATHERER_HIDE`,
+                    `${tier}_ARMOR_GATHERER_ORE`, `${tier}_HEAD_GATHERER_ORE`, `${tier}_SHOES_GATHERER_ORE`,
+                    `${tier}_ARMOR_GATHERER_ROCK`, `${tier}_HEAD_GATHERER_ROCK`, `${tier}_SHOES_GATHERER_ROCK`,
+                    `${tier}_ARMOR_GATHERER_WOOD`, `${tier}_HEAD_GATHERER_WOOD`, `${tier}_SHOES_GATHERER_WOOD`
+                ];
+                break;
+
+            // Silahlar
+            case "SWORD":
+                basePatterns = [`${tier}_SWORD`, `${tier}_2H_DUALSWORD`, `${tier}_2H_CLAYMORE`, `${tier}_2H_CLEAVER_GIANT`, `${tier}_MAIN_SCIMITAR_MORGANA`, `${tier}_2H_DUALSCIMITAR_FALLEN`];
+                break;
+            case "BOW":
+                basePatterns = [`${tier}_2H_BOW`, `${tier}_2H_WARBOW`, `${tier}_2H_LONGBOW`, `${tier}_2H_WHISPERINGBOW`, `${tier}_2H_DEMONICBOW`];
+                break;
+            case "AXE":
+                basePatterns = [`${tier}_MAIN_AXE`, `${tier}_2H_AXE`, `${tier}_2H_HALBERD`, `${tier}_2H_GREATAXE`, `${tier}_2H_DEATHGIVERS`];
+                break;
+            case "HAMMER":
+                basePatterns = [`${tier}_MAIN_HAMMER`, `${tier}_2H_HAMMER`, `${tier}_2H_POLEHAMMER`, `${tier}_2H_RAM_AVALON`];
+                break;
+            case "CROSSBOW":
+                basePatterns = [`${tier}_2H_CROSSBOW`, `${tier}_2H_CROSSBOW_LARGE`, `${tier}_MAIN_CROSSBOW`, `${tier}_2H_REPEATINGCROSSBOW`];
+                break;
+            case "FIRESTAFF":
+                basePatterns = [`${tier}_MAIN_FIRESTAFF`, `${tier}_2H_FIRESTAFF`, `${tier}_2H_INFERNOSTAFF`, `${tier}_MAIN_HELLFIRESTAFF`];
+                break;
+            case "HOLYSTAFF":
+                basePatterns = [`${tier}_MAIN_HOLYSTAFF`, `${tier}_2H_HOLYSTAFF`, `${tier}_2H_GREATHOLY`, `${tier}_MAIN_DIVINESTAFF`];
+                break;
+
+            // Zırhlar
+            case "ARMOR_PLATE":
+                basePatterns = [
+                    `${tier}_ARMOR_PLATE_SET1`, `${tier}_ARMOR_PLATE_SET2`, `${tier}_ARMOR_PLATE_SET3`,
+                    `${tier}_HEAD_PLATE_SET1`, `${tier}_HEAD_PLATE_SET2`, `${tier}_HEAD_PLATE_SET3`,
+                    `${tier}_SHOES_PLATE_SET1`, `${tier}_SHOES_PLATE_SET2`, `${tier}_SHOES_PLATE_SET3`
+                ];
+                break;
+            case "ARMOR_LEATHER":
+                basePatterns = [
+                    `${tier}_ARMOR_LEATHER_SET1`, `${tier}_ARMOR_LEATHER_SET2`, `${tier}_ARMOR_LEATHER_SET3`,
+                    `${tier}_HEAD_LEATHER_SET1`, `${tier}_HEAD_LEATHER_SET2`, `${tier}_HEAD_LEATHER_SET3`,
+                    `${tier}_SHOES_LEATHER_SET1`, `${tier}_SHOES_LEATHER_SET2`, `${tier}_SHOES_LEATHER_SET3`
+                ];
+                break;
+            case "ARMOR_CLOTH":
+                basePatterns = [
+                    `${tier}_ARMOR_CLOTH_SET1`, `${tier}_ARMOR_CLOTH_SET2`, `${tier}_ARMOR_CLOTH_SET3`,
+                    `${tier}_HEAD_CLOTH_SET1`, `${tier}_HEAD_CLOTH_SET2`, `${tier}_HEAD_CLOTH_SET3`,
+                    `${tier}_SHOES_CLOTH_SET1`, `${tier}_SHOES_CLOTH_SET2`, `${tier}_SHOES_CLOTH_SET3`
+                ];
+                break;
+
+            // Sarf Malzemeleri
+            case "POTION":
+                basePatterns = [`${tier}_POTION_HEAL`, `${tier}_POTION_ENERGY`, `${tier}_POTION_REVIVE`, `${tier}_POTION_STONESKIN`];
+                break;
+            case "MEAL":
+                basePatterns = [`${tier}_MEAL_FISH_SALAD`, `${tier}_MEAL_STEW`, `${tier}_MEAL_PIE`, `${tier}_MEAL_SOUP`];
+                break;
+            default:
+                basePatterns = [`${tier}_BAG`];
+        }
+
+        // Her baz item için tüm enchantment'ları (.0, .1, .2, .3, .4) türetelim
+        let fullList = [];
+        basePatterns.forEach(code => {
+            fullList.push(code);          // Düz (.0)
+            fullList.push(`${code}@1`);   // .1
+            fullList.push(`${code}@2`);   // .2
+            fullList.push(`${code}@3`);   // .3
+            fullList.push(`${code}@4`);   // .4
+        });
+
+        return fullList;
+    }
+
+    async function fetchMasterData() {
         const source = document.getElementById('sourceCity').value;
         const target = document.getElementById('targetCity').value;
-        const itemType = document.getElementById('itemType').value;
-        const itemTier = document.getElementById('itemTier').value;
+        const category = document.getElementById('itemCategory').value;
+        const tier = document.getElementById('itemTier').value;
         const premium = document.getElementById('isPremium').value === 'true';
         const tbody = document.getElementById('resultBody');
 
-        // Seçilen Tier ve İtem tipini birleştirip o itemin tüm enchantment'larını (.0, .1, .2, .3) otomatik oluşturalım
-        const baseCode = `${itemTier}_${itemType}`;
-        const itemsToFetch = [
-            baseCode,
-            `${baseCode}@1`,
-            `${baseCode}@2`,
-            `${baseCode}@3`
-        ];
+        const itemsToFetch = generateItemPatterns(category, tier);
 
-        tbody.innerHTML = `<tr><td colspan="7" class="loading">API'den tüm enchantment ve kaliteler taranıyor, bekle kankam...</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" class="loading">Seçilen kategorideki yüzlerce eşya ve enchantment taranıyor, bekle kankam...</td></tr>`;
 
         try {
+            // API URL uzun stringleri kaldırabildiği için gruplar halinde çekebiliriz veya tek seferde yollayabiliriz
             const itemsString = itemsToFetch.join(',');
             const url = `https://west.albion-online-data.com/api/v2/stats/prices/${itemsString}?locations=${source},${target}`;
             
@@ -151,7 +263,7 @@
             tbody.innerHTML = "";
 
             if (!data || data.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="7" class="loading">Bu seçime uygun veri bulunamadı.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="7" class="loading">Bu kategoride ve tier'da aktif veri bulunamadı.</td></tr>`;
                 return;
             }
 
@@ -163,6 +275,9 @@
             });
 
             let rowCount = 0;
+
+            // Kâr marjına göre sıralamak için sonuçları diziye atalım
+            let results = [];
 
             for (let key of Object.keys(marketMap)) {
                 let parts = key.split('_');
@@ -185,29 +300,45 @@
                 let netProfit = sellPrice - buyPrice - taxAmount;
                 let profitMargin = (netProfit / buyPrice) * 100;
 
-                let rowClass = netProfit > 0 ? "profit" : "loss";
+                results.push({
+                    itemId,
+                    quality: qualityNames[quality] || quality,
+                    buyPrice,
+                    sellPrice,
+                    taxAmount,
+                    netProfit,
+                    profitMargin
+                });
+            }
+
+            // En karlı olanı en üste getirelim (Sıralama)
+            results.sort((a, b) => b.netProfit - a.netProfit);
+
+            if (results.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" class="loading">Bu kriterlerde her iki pazarda da kesişen aktif fiyat verisi bulunamadı kanka.</td></tr>`;
+                return;
+            }
+
+            results.forEach(res => {
+                let rowClass = res.netProfit > 0 ? "profit" : "loss";
                 rowCount++;
 
                 tbody.innerHTML += `
                     <tr>
-                        <td class="item-name">${itemId}</td>
-                        <td>${qualityNames[quality] || quality}</td>
-                        <td>${buyPrice.toLocaleString()} s</td>
-                        <td>${sellPrice.toLocaleString()} s</td>
-                        <td>${taxAmount.toFixed(0)} s</td>
-                        <td class="${rowClass}">${netProfit.toFixed(0)} s</td>
-                        <td class="${rowClass}">${profitMargin.toFixed(1)}%</td>
+                        <td class="item-name">${res.itemId}</td>
+                        <td>${res.quality}</td>
+                        <td>${res.buyPrice.toLocaleString()} s</td>
+                        <td>${res.sellPrice.toLocaleString()} s</td>
+                        <td>${res.taxAmount.toFixed(0)} s</td>
+                        <td class="${rowClass}">${res.netProfit.toLocaleString()} s</td>
+                        <td class="${rowClass}">${res.profitMargin.toFixed(1)}%</td>
                     </tr>
                 `;
-            }
-
-            if(rowCount === 0) {
-                tbody.innerHTML = `<tr><td colspan="7" class="loading">Seçilen tier ve pazarlarda aktif fiyat verisi bulunamadı kanka.</td></tr>`;
-            }
+            });
 
         } catch (error) {
             console.error(error);
-            tbody.innerHTML = `<tr><td colspan="7" class="loading" style="color: #ef5350;">Bağlantı hatası oluştu kanka!</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="7" class="loading" style="color: #ef5350;">API'den veri çekerken hata oluştu kanka!</td></tr>`;
         }
     }
 </script>
