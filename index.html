@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Albion Market & Black Market Arbitraj</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #121212; color: #e0e0e0; margin: 0; padding: 20px; }
+        .container { max-width: 1000px; margin: auto; background: #1e1e1e; padding: 20px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+        h1 { font-size: 20px; margin-bottom: 20px; color: #ffa726; }
+        .controls { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+        select, button, input { padding: 10px; background: #2d2d2d; color: #fff; border: 1px solid #444; border-radius: 4px; }
+        button { background: #d32f2f; cursor: pointer; font-weight: bold; }
+        button:hover { background: #f44336; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { padding: 10px; text-align: left; border-bottom: 1px solid #333; font-size: 14px; }
+        th { background: #252525; color: #ffa726; }
+        .profit { color: #66bb6a; font-weight: bold; }
+        .loss { color: #ef5350; }
+        .loading { text-align: center; padding: 20px; font-style: italic; color: #888; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Albion Arbitraj Takip Panosu</h1>
+    
+    <div class="controls">
+        <div>
+            <label>Alış Yeri (Kaynak):</label>
+            <select id="sourceCity">
+                <option value="Caerleon">Caerleon (Normal Market)</option>
+                <option value="Martlock">Martlock</option>
+                <option value="Bridgewatch">Bridgewatch</option>
+                <option value="Lymhurst">Lymhurst</option>
+                <option value="Thetford">Thetford</option>
+                <option value="Fort Sterling">Fort Sterling</option>
+            </select>
+        </div>
+        
+        <div>
+            <label>Satış Yeri (Hedef):</label>
+            <select id="targetCity">
+                <option value="Black Market">Caerleon Black Market</option>
+                <option value="Caerleon">Caerleon (Normal Market)</option>
+            </select>
+        </div>
+
+        <div>
+            <label>Durum:</label>
+            <select id="isPremium">
+                <option value="true">Premium Var (-%4 Vergi)</option>
+                <option value="false">Premium Yok (-%8 Vergi)</option>
+            </select>
+        </div>
+
+        <div style="align-self: flex-end;">
+            <button onclick="fetchArbitrageData()">Verileri Çek ve Hesapla</button>
+        </div>
+    </div>
+
+    <div id="status"></div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Item ID</th>
+                <th>Alış Fiyatı (Kaynak)</th>
+                <th>Satış Fiyatı (Hedef)</th>
+                <th>Vergi / Masraf</th>
+                <th>Net Kâr</th>
+                <th>Marj (%)</th>
+            </tr>
+        </thead>
+        <tbody id="resultBody">
+            <tr><td colspan="6" class="loading">Henüz veri çekilmedi. Yukarıdan ayarlayıp butona bas kankam.</td></tr>
+        </tbody>
+    </table>
+</div>
+
+<script>
+    // Test amaçlı popüler birkaç item ID'si (Burayı zamanla genişletebilirsin)
+    const sampleItems = [
+        "T4_MAIN_SWORD", "T5_MAIN_SWORD", "T6_MAIN_SWORD",
+        "T4_2H_BOW", "T5_2H_BOW", "T6_2H_BOW",
+        "T4_ARMOR_PLATE_SET3", "T5_ARMOR_PLATE_SET3",
+        "T4_BAG", "T5_BAG", "T6_BAG"
+    ];
+
+    async function fetchArbitrageData() {
+        const source = document.getElementById('sourceCity').value;
+        const target = document.getElementById('targetCity').value;
+        const premium = document.getElementById('isPremium').value === 'true';
+        const tbody = document.getElementById('resultBody');
+        const status = document.getElementById('status');
+
+        tbody.innerHTML = `<tr><td colspan="6" class="loading">Veriler Albion API'den çekiliyor, bekle kankam...</td></tr>`;
+        status.innerHTML = "";
+
+        try {
+            // Albion Data Project API URL yapısı
+            const itemsString = sampleItems.join(',');
+            const url = `https://west.albion-online-data.com/api/v2/stats/prices/${itemsString}?locations=${source},${target}`;
+            
+            const response = await fetch(url);
+            const data = await response.json();
+
+            tbody.innerHTML = "";
+
+            if (data.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="loading">Veri bulunamadı.</td></tr>`;
+                return;
+            }
+
+            // Itemleri gruplayalım
+            let itemMap = {};
+            data.forEach(row => {
+                if (!itemMap[row.item_id]) itemMap[row.item_id] = {};
+                itemMap[row.item_id][row.city] = row;
+            });
+
+            for (let itemId of sampleItems) {
+                let itemData = itemMap[itemId];
+                if (!itemData || !itemData[source] || !itemData[target]) continue;
+
+                let buyRecord = itemData[source];
+                let sellRecord = itemData[target];
+
+                // Kaynaktan alırken en ucuz satış fiyatı (sell_price_min) baz alınır
+                let buyPrice = buyRecord.sell_price_min;
+                // Hedef Black Market ise alım teklifi (buy_price_max), normal market ise satış fiyatı (sell_price_min) baz alınır
+                let sellPrice = target === 'Black Market' ? sellRecord.buy_price_max : sellRecord.sell_price_min;
+
+                if (buyPrice === 0 || sellPrice === 0) continue;
+
+                // Vergi hesaplama (Black Market veya normal market satış vergisi)
+                let taxRate = premium ? 0.04 : 0.08;
+                let taxAmount = sellPrice * taxRate;
+                let netProfit = sellPrice - buyPrice - taxAmount;
+                let profitMargin = (netProfit / buyPrice) * 100;
+
+                let rowClass = netProfit > 0 ? "profit" : "loss";
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${itemId}</td>
+                        <td>${buyPrice.toLocaleString()} silver</td>
+                        <td>${sellPrice.toLocaleString()} silver</td>
+                        <td>${taxAmount.toFixed(0)} silver</td>
+                        <td class="${rowClass}">${netProfit.toFixed(0)} silver</td>
+                        <td class="${rowClass}">${profitMargin.toFixed(1)}%</td>
+                    </tr>
+                `;
+            }
+
+            if(tbody.innerHTML === "") {
+                tbody.innerHTML = `<tr><td colspan="6" class="loading">Seçilen kriterlere uygun aktif fiyat verisi bulunamadı.</td></tr>`;
+            }
+
+        } catch (error) {
+            console.error(error);
+            tbody.innerHTML = `<tr><td colspan="6" class="loading" style="color: #ef5350;">Veri çekerken hata oluştu kanka! Konsolu kontrol et.</td></tr>`;
+        }
+    }
+</script>
+
+</body>
+</html>
